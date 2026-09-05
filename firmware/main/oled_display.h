@@ -13,6 +13,8 @@ void oled_showReady();
 
 void oled_update(float bpm, int averageBpm, long irValue, bool fingerDetected,
 
-                 float rms, int32_t peak, uint32_t audioRate);
+                 float rms, int32_t peak, uint32_t audioRate,
+
+                 const int16_t *wave, int waveLen);
 
 #endif
