@@ -67,7 +67,7 @@ Dữ liệu âm thanh từ INMP441 có thể được xử lý bằng các đặ
 
 ## 5. Cấu trúc project
 
-```text
+text
 ASTHMA_AIOT/
 │
 ├── firmware/

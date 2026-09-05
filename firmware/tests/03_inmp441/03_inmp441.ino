@@ -1,6 +1,6 @@
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Wire.h>
 #include <driver/i2s.h>
 
 // =========================
@@ -14,12 +14,7 @@
 #define OLED_SCL 9
 #define OLED_ADDR 0x3C
 
-Adafruit_SSD1306 display(
-  SCREEN_WIDTH,
-  SCREEN_HEIGHT,
-  &Wire,
-  -1
-);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // =========================
 // INMP441
@@ -28,8 +23,8 @@ Adafruit_SSD1306 display(
 #define I2S_PORT I2S_NUM_0
 
 #define I2S_SCK 14
-#define I2S_WS  15
-#define I2S_SD  16
+#define I2S_WS 15
+#define I2S_SD 16
 
 #define SAMPLE_RATE 16000
 #define BUFFER_SIZE 256
@@ -57,14 +52,12 @@ void setup() {
 
   Wire.begin(OLED_SDA, OLED_SCL);
 
-  if (!display.begin(
-        SSD1306_SWITCHCAPVCC,
-        OLED_ADDR
-      )) {
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
 
     Serial.println("OLED ERROR!");
 
-    while (1);
+    while (1)
+      ;
   }
 
   Serial.println("OLED OK!");
@@ -93,35 +86,27 @@ void setup() {
 
   i2s_config_t config = {
 
-    .mode = (i2s_mode_t)(
-      I2S_MODE_MASTER |
-      I2S_MODE_RX
-    ),
+      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
 
-    .sample_rate = SAMPLE_RATE,
+      .sample_rate = SAMPLE_RATE,
 
-    .bits_per_sample =
-      I2S_BITS_PER_SAMPLE_32BIT,
+      .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
 
-    .channel_format =
-      I2S_CHANNEL_FMT_ONLY_LEFT,
+      .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
 
-    .communication_format =
-      I2S_COMM_FORMAT_I2S,
+      .communication_format = I2S_COMM_FORMAT_I2S,
 
-    .intr_alloc_flags =
-      ESP_INTR_FLAG_LEVEL1,
+      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
 
-    .dma_buf_count = 8,
+      .dma_buf_count = 8,
 
-    .dma_buf_len = 64,
+      .dma_buf_len = 64,
 
-    .use_apll = false,
+      .use_apll = false,
 
-    .tx_desc_auto_clear = false,
+      .tx_desc_auto_clear = false,
 
-    .fixed_mclk = 0
-  };
+      .fixed_mclk = 0};
 
   // =========================
   // I2S PIN CONFIG
@@ -129,15 +114,13 @@ void setup() {
 
   i2s_pin_config_t pin_config = {
 
-    .bck_io_num = I2S_SCK,
+      .bck_io_num = I2S_SCK,
 
-    .ws_io_num = I2S_WS,
+      .ws_io_num = I2S_WS,
 
-    .data_out_num =
-      I2S_PIN_NO_CHANGE,
+      .data_out_num = I2S_PIN_NO_CHANGE,
 
-    .data_in_num = I2S_SD
-  };
+      .data_in_num = I2S_SD};
 
   // =========================
   // INSTALL I2S DRIVER
@@ -145,12 +128,7 @@ void setup() {
 
   esp_err_t result;
 
-  result = i2s_driver_install(
-    I2S_PORT,
-    &config,
-    0,
-    NULL
-  );
+  result = i2s_driver_install(I2S_PORT, &config, 0, NULL);
 
   if (result != ESP_OK) {
 
@@ -166,19 +144,18 @@ void setup() {
 
     display.display();
 
-    while (1);
+    while (1)
+      ;
   }
 
-  result = i2s_set_pin(
-    I2S_PORT,
-    &pin_config
-  );
+  result = i2s_set_pin(I2S_PORT, &pin_config);
 
   if (result != ESP_OK) {
 
     Serial.println("I2S PIN ERROR!");
 
-    while (1);
+    while (1)
+      ;
   }
 
   i2s_zero_dma_buffer(I2S_PORT);
@@ -220,13 +197,8 @@ void loop() {
   // READ AUDIO
   // =========================
 
-  esp_err_t result = i2s_read(
-    I2S_PORT,
-    samples,
-    sizeof(samples),
-    &bytesRead,
-    portMAX_DELAY
-  );
+  esp_err_t result =
+      i2s_read(I2S_PORT, samples, sizeof(samples), &bytesRead, portMAX_DELAY);
 
   if (result != ESP_OK) {
 
@@ -235,8 +207,7 @@ void loop() {
     return;
   }
 
-  int sampleCount =
-    bytesRead / sizeof(int32_t);
+  int sampleCount = bytesRead / sizeof(int32_t);
 
   // =========================
   // CALCULATE AUDIO LEVEL
@@ -249,19 +220,16 @@ void loop() {
   for (int i = 0; i < sampleCount; i++) {
 
     // INMP441 24-bit data
-    int32_t sample =
-      samples[i] >> 14;
+    int32_t sample = samples[i] >> 14;
 
     // Absolute value
-    int32_t absolute =
-      abs(sample);
+    int32_t absolute = abs(sample);
 
     if (absolute > peak) {
       peak = absolute;
     }
 
-    sum +=
-      (long long)sample * sample;
+    sum += (long long)sample * sample;
   }
 
   // =========================
@@ -272,10 +240,7 @@ void loop() {
 
   if (sampleCount > 0) {
 
-    rms = sqrt(
-      (float)sum /
-      sampleCount
-    );
+    rms = sqrt((float)sum / sampleCount);
   }
 
   // =========================
@@ -314,30 +279,11 @@ void loop() {
   // SIMPLE LEVEL BAR
   // =========================
 
-  int barWidth =
-    map(
-      constrain(peak, 0, 10000),
-      0,
-      10000,
-      0,
-      120
-    );
+  int barWidth = map(constrain(peak, 0, 10000), 0, 10000, 0, 120);
 
-  display.drawRect(
-    0,
-    53,
-    128,
-    10,
-    SSD1306_WHITE
-  );
+  display.drawRect(0, 53, 128, 10, SSD1306_WHITE);
 
-  display.fillRect(
-    2,
-    55,
-    barWidth,
-    6,
-    SSD1306_WHITE
-  );
+  display.fillRect(2, 55, barWidth, 6, SSD1306_WHITE);
 
   display.display();
 
