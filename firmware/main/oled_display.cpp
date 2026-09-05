@@ -195,15 +195,19 @@ void oled_update(float bpm, int averageBpm, long irValue, bool fingerDetected,
 
   display.print("MIC: ");
 
-  if (audioRate > 14000 && audioRate < 18000) {
+  if (audioRate == 0) {
 
-    display.print(audioRate);
-
-    display.println(" S/s OK");
+    display.println("NO DATA");
 
   } else {
 
-    display.println("NO DATA");
+    display.print(audioRate);
+
+    display.print(" S/s");
+
+    if (audioRate > 14000 && audioRate < 18000) {
+      display.print(" OK");
+    }
   }
 
   // =========================
