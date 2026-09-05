@@ -29,6 +29,10 @@ bool oled_init() {
 
   Wire.begin(OLED_SDA, OLED_SCL);
 
+  // 400kHz de lan ve OLED (~1KB) khong chiem bus I2C qua lau
+  // (100kHz mac dinh lam nghet bus, lam mat sample cua INMP441)
+  Wire.setClock(400000);
+
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
 
     Serial.println("[OLED] ERROR!");

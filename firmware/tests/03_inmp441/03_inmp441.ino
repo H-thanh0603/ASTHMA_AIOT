@@ -6,6 +6,10 @@
 //   - Phat hien khong co du lieu (sai day / nguon)
 //   - RMS/PEAK phan ung khi noi vao mic
 //
+// Luu y hieu nang: DMA 16x128 = 128 ms audio + I2C 400kHz +
+// OLED chi ve moi 200ms de loop khong bi nghen (neu khong se
+// mat sample va measured rate < 16000).
+//
 // Cach xem ket qua:
 //   - Serial Monitor 115200: bao cao moi giay + PASS/FAIL
 //   - Serial Plotter: xem song am (RMS)
@@ -30,6 +34,10 @@
 #define OLED_ADDR 0x3C
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+#define OLED_INTERVAL_MS 200
+
+unsigned long lastOledMs = 0;
 
 // =========================
 // INMP441
@@ -73,8 +81,11 @@ bool initI2S() {
       .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
       .communication_format = I2S_COMM_FORMAT_I2S,
       .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-      .dma_buf_count = 8,
-      .dma_buf_len = 64,
+
+      // 16 x 128 = 2048 samples ~ 128 ms audio
+      .dma_buf_count = 16,
+      .dma_buf_len = 128,
+
       .use_apll = false,
       .tx_desc_auto_clear = false,
       .fixed_mclk = 0};
@@ -117,6 +128,9 @@ void setup() {
   Serial.println();
 
   Wire.begin(OLED_SDA, OLED_SCL);
+
+  // 400kHz de khong nghet bus I2C lau
+  Wire.setClock(400000);
 
   bool oledOk = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
 
@@ -196,7 +210,7 @@ void report() {
 
   } else if (measuredRate < RATE_MIN || measuredRate > RATE_MAX) {
 
-    verdict = "RATE LECH - khong on dinh, kiem tra day/nguon";
+    verdict = "RATE LECH - loop bi nghen hoac day/ket noi khong on dinh";
 
   } else if (peakValue < PEAK_SILENCE) {
 
@@ -221,42 +235,51 @@ void report() {
 
 void loop() {
 
-  size_t bytesRead = 0;
-
-  esp_err_t result =
-      i2s_read(I2S_PORT, samples, sizeof(samples), &bytesRead, 0);
-
-  if (result != ESP_OK || bytesRead == 0) {
-    report();
-    return;
-  }
-
-  int sampleCount = bytesRead / sizeof(int32_t);
+  // =========================
+  // DOC HET DU LIEU I2S CO SAN
+  // =========================
 
   int64_t sum = 0;
   int32_t peak = 0;
+  int readTotal = 0;
   int zeros = 0;
 
-  for (int i = 0; i < sampleCount; i++) {
+  for (int n = 0; n < 8; n++) {
 
-    int32_t sample = samples[i] >> 14;
+    size_t bytesRead = 0;
 
-    if (sample == 0) {
-      zeros++;
+    esp_err_t result =
+        i2s_read(I2S_PORT, samples, sizeof(samples), &bytesRead, 0);
+
+    if (result != ESP_OK || bytesRead == 0) {
+      break;
     }
 
-    int32_t absolute = (sample < 0) ? -sample : sample;
+    int sampleCount = bytesRead / sizeof(int32_t);
 
-    if (absolute > peak) {
-      peak = absolute;
+    for (int i = 0; i < sampleCount; i++) {
+
+      int32_t sample = samples[i] >> 14;
+
+      if (sample == 0) {
+        zeros++;
+      }
+
+      int32_t absolute = (sample < 0) ? -sample : sample;
+
+      if (absolute > peak) {
+        peak = absolute;
+      }
+
+      sum += (int64_t)sample * sample;
     }
 
-    sum += (int64_t)sample * sample;
+    readTotal += sampleCount;
   }
 
-  if (sampleCount > 0) {
-    rmsValue = sqrt((double)sum / sampleCount);
-    windowSamples += sampleCount;
+  if (readTotal > 0) {
+    rmsValue = sqrt((double)sum / readTotal);
+    windowSamples += readTotal;
     zeroSamples += zeros;
   }
 
@@ -267,9 +290,17 @@ void loop() {
   // Serial Plotter: xem muc am thanh theo thoi gian
   Serial.println(rmsValue, 0);
 
+  report();
+
   // =========================
-  // OLED
+  // OLED - chi ve moi 200ms
   // =========================
+
+  if (millis() - lastOledMs < OLED_INTERVAL_MS) {
+    return;
+  }
+
+  lastOledMs = millis();
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -315,6 +346,4 @@ void loop() {
   }
 
   display.display();
-
-  report();
 }

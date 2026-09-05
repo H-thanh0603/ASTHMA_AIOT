@@ -62,9 +62,11 @@ bool inmp441_init() {
 
       .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
 
-      .dma_buf_count = 8,
+      // 16 x 128 = 2048 samples ~ 128 ms audio:
+      // du cho ca nhung luc bus I2C (OLED/MAX30102) dang ban
+      .dma_buf_count = 16,
 
-      .dma_buf_len = 64,
+      .dma_buf_len = 128,
 
       .use_apll = false,
 
