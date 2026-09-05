@@ -10,6 +10,9 @@ compile_commands.json
 sdkconfig
 partitions.csv
 
+# Secrets (WiFi password, Blynk token)
+firmware/main/secrets.h
+
 # IDE / local config
 .vscode/
 

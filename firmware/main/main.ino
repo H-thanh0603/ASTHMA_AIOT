@@ -3,6 +3,8 @@
 #include "inmp441_sensor.h"
 #include "max30102_sensor.h"
 #include "oled_display.h"
+#include "wifi_manager.h"
+#include "blynk_manager.h"
 
 unsigned long lastDisplayUpdate = 0;
 
@@ -77,12 +79,27 @@ void setup() {
   delay(500);
 
   // ==========================
+  // WIFI
+  // ==========================
+
+  Serial.println("[SYSTEM] Starting WiFi...");
+
+  bool wifiOk = wifi_init();
+
+  // ==========================
+  // BLYNK
+  // ==========================
+
+  blynk_init();
+
+  // ==========================
   // SYSTEM READY
   // ==========================
 
   Serial.println();
   Serial.println("==============================");
   Serial.println("      SYSTEM READY");
+  Serial.printf("      WiFi : %s\n", wifiOk ? "CONNECTED" : "OFFLINE");
   Serial.println("==============================");
 
   oled_showReady();
@@ -102,6 +119,17 @@ void loop() {
   // ==========================
 
   inmp441_update();
+
+  // ==========================
+  // WIFI + BLYNK
+  // ==========================
+
+  wifi_update();
+
+  blynk_setHealth(max30102_getAverageBPM(), max30102_hasFinger(),
+                  inmp441_getRMS(), inmp441_getMeasuredRate());
+
+  blynk_update();
 
   // ==========================
   // UPDATE OLED
