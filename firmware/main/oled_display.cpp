@@ -119,7 +119,7 @@ void oled_showReady() {
 
   display.setCursor(0, 40);
 
-  display.println("INMP441 : OK");
+  display.println("INMP441 : 16kHz OK");
 
   display.setCursor(0, 52);
 
@@ -134,7 +134,7 @@ void oled_showReady() {
 
 void oled_update(float bpm, int averageBpm, long irValue, bool fingerDetected,
 
-                 float rms, int32_t peak) {
+                 float rms, int32_t peak, uint32_t audioRate) {
 
   display.clearDisplay();
 
@@ -183,15 +183,28 @@ void oled_update(float bpm, int averageBpm, long irValue, bool fingerDetected,
 
   display.setCursor(0, 37);
 
-  display.print("RMS : ");
+  display.print("RMS: ");
 
-  display.println(rms, 0);
+  display.print(rms, 0);
+
+  display.print(" PK:");
+
+  display.println(peak);
 
   display.setCursor(0, 48);
 
-  display.print("mic: ");
+  display.print("MIC: ");
 
-  display.println(peak);
+  if (audioRate > 14000 && audioRate < 18000) {
+
+    display.print(audioRate);
+
+    display.println(" S/s OK");
+
+  } else {
+
+    display.println("NO DATA");
+  }
 
   // =========================
   // STATUS

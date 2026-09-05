@@ -1,0 +1,18 @@
+# Build artifacts
+firmware/main/build/
+build/
+*.bin
+*.elf
+*.map
+*.o
+*.d
+compile_commands.json
+sdkconfig
+partitions.csv
+
+# IDE / local config
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db

@@ -110,6 +110,7 @@ void loop() {
     oled_update(max30102_getBPM(), max30102_getAverageBPM(), max30102_getIR(),
                 max30102_hasFinger(),
 
-                inmp441_getRMS(), inmp441_getPeak());
+                inmp441_getRMS(), inmp441_getPeak(),
+                inmp441_getMeasuredRate());
   }
 }
