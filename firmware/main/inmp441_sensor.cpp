@@ -131,47 +131,57 @@ bool inmp441_init() {
 
 void inmp441_update() {
 
-  size_t bytesRead = 0;
-
-  esp_err_t result =
-      i2s_read(I2S_PORT, rawSamples, sizeof(rawSamples), &bytesRead, 0);
-
-  if (result != ESP_OK || bytesRead == 0) {
-
-    return;
-  }
-
-  int sampleCount = bytesRead / sizeof(int32_t);
-
   int64_t sum = 0;
 
   int32_t peak = 0;
 
-  for (int i = 0; i < sampleCount; i++) {
+  int readCount = 0;
 
-    // 24-bit trong khung 32-bit -> PCM int16 chuan (top 16 bit)
-    int16_t sample = (int16_t)(rawSamples[i] >> 16);
+  // Rut het du lieu co san trong DMA moi vong loop.
+  // Mot lan doc chi lay toi da 256 sample, neu loop chay cham hon
+  // toc do audio thi doc 1 lan se tran DMA -> mat sample.
+  for (int n = 0; n < 8; n++) {
 
-    ringBuffer[ringWriteIndex] = sample;
+    size_t bytesRead = 0;
 
-    ringWriteIndex = (ringWriteIndex + 1) % INMP441_RING_BUFFER_SIZE;
+    esp_err_t result =
+        i2s_read(I2S_PORT, rawSamples, sizeof(rawSamples), &bytesRead, 0);
 
-    int32_t absolute = (sample < 0) ? -sample : sample;
+    if (result != ESP_OK || bytesRead == 0) {
 
-    if (absolute > peak) {
-      peak = absolute;
+      break;
     }
 
-    sum += (int64_t)sample * sample;
+    int sampleCount = bytesRead / sizeof(int32_t);
+
+    for (int i = 0; i < sampleCount; i++) {
+
+      // 24-bit trong khung 32-bit -> PCM int16 chuan (top 16 bit)
+      int16_t sample = (int16_t)(rawSamples[i] >> 16);
+
+      ringBuffer[ringWriteIndex] = sample;
+
+      ringWriteIndex = (ringWriteIndex + 1) % INMP441_RING_BUFFER_SIZE;
+
+      int32_t absolute = (sample < 0) ? -sample : sample;
+
+      if (absolute > peak) {
+        peak = absolute;
+      }
+
+      sum += (int64_t)sample * sample;
+    }
+
+    readCount += sampleCount;
   }
 
-  if (sampleCount > 0) {
+  if (readCount > 0) {
 
-    rmsValue = sqrt((double)sum / sampleCount);
+    rmsValue = sqrt((double)sum / readCount);
 
-    totalSamples += sampleCount;
+    totalSamples += readCount;
 
-    windowSamples += sampleCount;
+    windowSamples += readCount;
 
     lastTimestampMs = millis();
   }
